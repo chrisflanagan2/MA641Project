@@ -1,0 +1,111 @@
+---
+title: "641 Project"
+subtitle: "Fitting time series models to oil prices"
+author: "Chris Flanagan, Suraj Nair, Gregory Yampolsky, Yehao Feng, Elliot Frost"
+output: html_notebook
+---
+
+
+### Data cleaning and preparation
+
+```{r}
+data = read.csv('/Users/chrisflanagan/Desktop/641/project/DCOILWTICO.csv')
+head(data)
+```
+
+rename columns to date and oil price (per barrel)
+
+```{r}
+colnames(data) = c('date','price')
+head(data)
+```
+
+We need to change the type of the price column from chr to int
+```{r}
+# cast from chr to int 
+data$price = as.integer(data$price)
+typeof(data$price)
+```
+
+We need to check for missing values
+```{r}
+#C heck for missing values
+sum(is.na(data$price))
+```
+
+We have 327 missing values, We will replace them with the mean of the column
+```{r}
+# Replace missing values with mean
+data$price[is.na(data$price)] = mean(data$price, na.rm = TRUE) 
+sum(is.na(data$price))
+```
+
+### Visualization
+```{r}
+# Visualize time series
+plot(data$price, type = 'l')
+```
+
+
+We will check for normality
+```{r}
+# Check for normality
+hist(data$price)
+```
+
+The data does not appear to be normal
+
+## Check for staionarity
+
+
+we will check for stationarity with an ACF plot
+```{r}
+acf(data$price)
+pacf(data$price)
+```
+
+The ACF plot implies the data is not stationary.
+
+We will also do an ADF test to check for stationarity
+```{r}
+library(tseries)
+adf.test(data$price)
+```
+
+Since our p-value is > .05, we reject our alternative hypothesis. Our dataset is not stationary.
+
+We will perform stationarity through differenceing
+```{r}
+# perform transformation
+dseries = diff(data$price)
+```
+
+## Finding models
+
+```{r}
+acf(data$price,lag.max = 20)
+acf(dseries, lag.max = 20)
+pacf(data$price, lag.max = 20)
+pacf(dseries, lag.max = 20)
+```
+
+Our ACF and PACF plots seem to imply an MA(1) model because the PACF plot tails off and the ACF plot cuts off at lag 1
+
+We will fit an MA(1) model
+
+im not sure to fit the differenced data or the original data
+```{r}
+ma1 = arima(dseries,order=c(0,0,1))
+plot(ma1)
+```
+
+```{r}
+arima(ma1,order=c(0,0,1),method='CSS')
+arima(ma1,order=c(0,0,1),method='ML')
+```
+```{r}
+plot(ma1,type = 'l')
+```
+
+
+
